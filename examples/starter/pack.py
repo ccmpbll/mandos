@@ -1,6 +1,6 @@
 """Starter job pack: one job that checks Prometheus for targets that are down, asks the local model for a short summary, and
 sends a Pushover when something is down. Copy this folder, change it, and send it to mandos (tools/push.py) or edit it on the
-Jobs page. See the README's "Job packs" section for every field."""
+Jobs page. Every manifest field is described at the top of packs.py."""
 import targets
 
 HOME = "/targets"
