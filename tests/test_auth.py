@@ -95,3 +95,11 @@ def test_failure_alert_has_no_link_without_base_url(monkeypatch):
     monkeypatch.setitem(packs.jobs()["targets"], "run", lambda log: 1 / 0)
     runner.run_job("targets")
     assert "url" not in notify.sent[-1]
+
+
+def test_bad_proxy_hops_falls_back(monkeypatch):
+    import flask
+    monkeypatch.setenv("MANDOS_PROXY_HOPS", "yes")
+    a = flask.Flask("t")
+    auth.install(a)                                  # no crash
+    assert type(a.wsgi_app).__name__ == "ProxyFix"

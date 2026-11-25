@@ -92,7 +92,10 @@ def card(title, inner, status=200):
 
 
 def install(app):
-    hops = int(os.environ.get("MANDOS_PROXY_HOPS", "1") or 0)
+    raw = os.environ.get("MANDOS_PROXY_HOPS", "1").strip() or "0"
+    hops = int(raw) if raw.isdigit() else 1
+    if not raw.isdigit():
+        print(f"MANDOS_PROXY_HOPS={raw!r} is not a number; using 1", flush=True)
     if hops:      # behind a reverse proxy every request comes from the proxy: take the client address from X-Forwarded-For
         from werkzeug.middleware.proxy_fix import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=hops, x_proto=hops, x_host=0)
