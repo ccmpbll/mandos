@@ -26,6 +26,9 @@ Open the page and create the first account, then fill in Settings: the model ser
 llama-swap or Ollama), Pushover, and the services your jobs read. `MANDOS_STARTER=1` copies the starter pack into an empty
 `/data/jobs`. An environment variable wins over the Settings page (see `env.example`).
 
+Mandos expects one reverse proxy in front (`MANDOS_PROXY_HOPS=1`, the default) and takes the client's address from its
+`X-Forwarded-For`, so the login's wrong-password limit is per client. Exposed directly with no proxy, set `MANDOS_PROXY_HOPS=0`.
+
 ## Job packs
 
 A pack is a folder with a `pack.py` that lists its jobs (a `run(log)` function, default schedules, and the steps, prompts and

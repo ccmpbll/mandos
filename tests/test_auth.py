@@ -72,3 +72,26 @@ def test_password_change_logs_out_other_sessions(c):
 def test_disable_auth(monkeypatch):
     monkeypatch.setattr(config, "DISABLE_AUTH", True)
     assert web.app.test_client().get("/targets").status_code == 200
+
+
+def test_lockout_is_per_client_behind_the_proxy(c):
+    setup_user(c)
+    c.post("/logout")
+    for _ in range(auth.TRIES):
+        c.post("/login", data={"username": "chris", "password": "bad"}, headers={"X-Forwarded-For": "10.0.0.66"})
+    other = web.app.test_client()
+    r = other.post("/login", data={"username": "chris", "password": "correct horse battery"}, headers={"X-Forwarded-For": "10.0.0.5"})
+    assert r.status_code == 303                                  # the owner on another address still gets in
+    r = c.post("/login", data={"username": "chris", "password": "correct horse battery"}, headers={"X-Forwarded-For": "10.0.0.66"})
+    assert b"Too many tries" in r.data
+
+
+def test_failure_alert_has_no_link_without_base_url(monkeypatch):
+    import config
+    import notify
+    import runner
+    import packs
+    monkeypatch.setattr(config, "BASE_URL", "")
+    monkeypatch.setitem(packs.jobs()["targets"], "run", lambda log: 1 / 0)
+    runner.run_job("targets")
+    assert "url" not in notify.sent[-1]

@@ -85,3 +85,21 @@ def test_editor_pages(monkeypatch):
     assert r.status_code == 200 and b"textarea" in r.data
     r = c.post("/edit", data={"file": "targets.py", "text": "def x(:\n"})
     assert r.status_code == 400 and b"Not saved" in r.data
+
+
+def test_import_timeout_and_history_names(monkeypatch):
+    monkeypatch.setattr(codeedit, "CHECK_SECS", 1)
+    assert "longer than 1 s" in codeedit.save("slow.py", "import time\ntime.sleep(5)\n")
+    assert codeedit._hist_name("a/b.py") != codeedit._hist_name("a__b.py")
+    assert codeedit.save("a__b.py", "X = 1\n") is None and codeedit.save("a__b.py", "X = 2\n") is None
+    assert codeedit.history("a/b.py") == [] and len(codeedit.history("a__b.py")) == 1
+    codeedit.delete("a__b.py")
+
+
+def test_edit_links_are_url_encoded(monkeypatch):
+    monkeypatch.setattr(config, "ALLOW_EDIT", True)
+    assert codeedit.save("prompts/odd #1+x.txt", "hi") is None
+    h = web.app.test_client().get("/jobs").data
+    assert b"/edit?file=prompts/odd%20%231%2Bx.txt" in h
+    assert web.app.test_client().get("/edit?file=prompts/odd%20%231%2Bx.txt").status_code == 200
+    codeedit.delete("prompts/odd #1+x.txt")

@@ -8,12 +8,14 @@ import json
 import os
 import subprocess
 import sys
+import urllib.parse
 from datetime import datetime
 
 import config
 import packs
 
 KEEP = 20
+CHECK_SECS = 30
 TEXT_TYPES = (".py", ".txt", ".json", ".j2", ".md", ".yml", ".yaml", ".csv", ".sql", ".html", ".css", ".js")
 MAX_BYTES = 2_000_000
 
@@ -38,7 +40,7 @@ def hist_dir():
 
 
 def _hist_name(rel):
-    return rel.replace("/", "__")
+    return urllib.parse.quote(rel, safe="")       # a/b.py -> a%2Fb.py, distinct from a__b.py
 
 
 def read(rel):
@@ -70,8 +72,10 @@ def check(rel, text):
     try:
         os.makedirs(os.path.dirname(tmp), exist_ok=True)
         open(tmp, "w", encoding="utf-8").write(text)
-        r = subprocess.run([sys.executable, "-c", code], cwd=config.JOBS_DIR, capture_output=True, text=True, timeout=30,
+        r = subprocess.run([sys.executable, "-c", code], cwd=config.JOBS_DIR, capture_output=True, text=True, timeout=CHECK_SECS,
                            env={**os.environ, "MANDOS_DB": ":memory:"})
+    except subprocess.TimeoutExpired:
+        return f"importing it took longer than {CHECK_SECS} s (does it do slow work at import time?)"
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)

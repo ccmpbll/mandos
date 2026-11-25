@@ -38,7 +38,8 @@ def run_job(name):
     except Exception as e:  # noqa: BLE001
         lines.append(traceback.format_exc())
         db.update("job_runs", rid, {"finished": et_stamp(), "status": "failed", "detail": str(e)[:300], "log": "\n".join(lines)[-20000:]})
-        notify.push("mandos job failed: " + name, str(e)[:400], priority=0, url=(config.BASE_URL or "") + "/runs", url_title="Open run history")
+        notify.push("mandos job failed: " + name, str(e)[:400], priority=0, url=config.BASE_URL + "/runs" if config.BASE_URL else None,
+                    url_title="Open run history")
         return "failed"
     finally:
         with _guard:

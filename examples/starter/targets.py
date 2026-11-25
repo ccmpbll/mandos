@@ -38,7 +38,7 @@ def run(log):
     summary = summarise(items)
     db.insert("targets_runs", {"down": json.dumps(items), "summary": summary})
     if items:
-        notify.push(f"{len(items)} targets down", summary or "\n".join(items)[:900], url=(config.BASE_URL or "") + "/targets", url_title="Open")
+        notify.push(f"{len(items)} targets down", summary or "\n".join(items)[:900], url=config.BASE_URL + "/targets" if config.BASE_URL else None, url_title="Open")
 
 
 def page_body():

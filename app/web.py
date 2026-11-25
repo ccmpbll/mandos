@@ -141,7 +141,7 @@ def edit_save():
     if err:
         return html_page("Edit " + rel + " - Mandos", "jobs", jobs_page.render_edit(codeedit.safe(rel), text, err), jobs_page.EDIT_JS, 400)
     packs.load()
-    return redirect("/edit?file=" + codeedit.safe(rel) + "&saved=1", 303)
+    return redirect("/edit?file=" + jobs_page.q(codeedit.safe(rel)) + "&saved=1", 303)
 
 
 @app.post("/edit/restore")
@@ -153,7 +153,7 @@ def edit_restore():
     if err:
         return html_page("Edit " + rel + " - Mandos", "jobs", jobs_page.render_edit(codeedit.safe(rel), error=err), jobs_page.EDIT_JS, 400)
     packs.load()
-    return redirect("/edit?file=" + codeedit.safe(rel) + "&saved=1", 303)
+    return redirect("/edit?file=" + jobs_page.q(codeedit.safe(rel)) + "&saved=1", 303)
 
 
 @app.get("/healthz")

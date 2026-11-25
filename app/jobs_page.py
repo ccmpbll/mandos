@@ -4,6 +4,7 @@ import html
 import json
 import os
 import re
+import urllib.parse
 
 import codeedit
 import config
@@ -13,6 +14,10 @@ import promptstore
 import settings
 
 esc = html.escape
+
+
+def q(s):
+    return urllib.parse.quote(s, safe="/")
 
 
 def _module_file(mod):
@@ -68,7 +73,7 @@ def render_list():
     if not js:
         rows = ('<div class="playbook-row"><p class="dim">No jobs yet. A job pack is a folder with a <code>pack.py</code> in <code>' + esc(config.JOBS_DIR)
                 + "</code>; put one there or send its files through the API (README: Job packs).</p></div>")
-    files = "".join('<tr><td><code>' + esc(f) + '</code></td><td>' + (('<a href="/edit?file=' + esc(f) + '">Edit</a>') if config.ALLOW_EDIT and codeedit.safe(f) else "")
+    files = "".join('<tr><td><code>' + esc(f) + '</code></td><td>' + (('<a href="/edit?file=' + esc(q(f)) + '">Edit</a>') if config.ALLOW_EDIT and codeedit.safe(f) else "")
                     + "</td></tr>" for f in packs.files())
     return (CSS + '<div class="page-header"><div><h1>Jobs</h1><p class="sub">What each job does, its prompts and its code.</p>' + pack_state()
             + '</div></div><div class="card flush">' + rows + "</div>"
@@ -84,7 +89,7 @@ def render_prompt(label, f, target):
     adds = promptstore.additions(target) if target else []
     out = ('<div class="card"><div class="top"><b>' + esc(label) + '</b><span class="playbook-path">prompts/' + esc(f)
            + (" + " + str(len(adds)) + " addition" + ("" if len(adds) == 1 else "s") if adds else "") + "</span>"
-           + (' <a class="small" href="/edit?file=prompts/' + esc(f) + '">Edit</a>' if config.ALLOW_EDIT else "") + "</div>"
+           + (' <a class="small" href="/edit?file=' + esc(q("prompts/" + f)) + '">Edit</a>' if config.ALLOW_EDIT else "") + "</div>"
            + "<details><summary>Base text (" + str(len(text.split())) + ' words)</summary><pre class="src wrap">' + esc(text) + "</pre></details>")
     for a in adds:
         out += ('<div class="add"><div class="meta">Addition #' + str(a["id"]) + " · " + esc(str(a.get("createdAt") or "")[:10])
@@ -107,7 +112,7 @@ def edit_link(rel):
     if not config.ALLOW_EDIT:
         return '<p class="dim small">Editing is off (MANDOS_ALLOW_EDIT=0).</p>'
     n = len(codeedit.history(rel))
-    return ('<p class="small"><a class="btn ghost" href="/edit?file=' + esc(rel) + '">Edit ' + esc(rel) + "</a>"
+    return ('<p class="small"><a class="btn ghost" href="/edit?file=' + esc(q(rel)) + '">Edit ' + esc(rel) + "</a>"
             + (' <span class="dim">' + str(n) + " earlier version" + ("" if n == 1 else "s") + "</span>" if n else "") + "</p>")
 
 
@@ -119,7 +124,7 @@ def render_job(name, file=None):
     for t, ref, how, k in [tuple(s) + ("",) * (4 - len(s)) for s in j.get("steps", [])]:
         mod, _, fn = ref.rpartition(".")
         n = line_of(_module_file(mod), fn) if mod else None
-        link = ('<a href="/jobs/' + esc(name) + "?file=" + esc(_module_file(mod)) + "#L" + str(n) + '"><code>' + esc(ref) + "</code></a>") if n else \
+        link = ('<a href="/jobs/' + esc(name) + "?file=" + esc(q(_module_file(mod))) + "#L" + str(n) + '"><code>' + esc(ref) + "</code></a>") if n else \
             ('<code>' + esc(ref) + '</code> <span class="badge crit">not found</span>' if ref else "")
         steps += ('<li><span class="what">' + esc(t) + (' <span class="tag ' + esc(k) + '">' + esc(k) + "</span>" if k else "") + '</span><span class="how">'
                   + esc(how) + (" · " + link if link else "") + "</span></li>")
@@ -136,7 +141,7 @@ def render_job(name, file=None):
                  + str(len(qs)) + ' queries</summary><table class="q">' + "".join("<tr><td>" + esc(q.get("name", "")) + "</td><td><code>" + esc(q.get("query", ""))
                                                                                   + "</code></td></tr>" for q in qs) + "</table></details></div>")
     if rel:
-        others = " · ".join(('<b>' + esc(f) + "</b>" if f == rel else '<a href="/jobs/' + esc(name) + "?file=" + esc(f) + '#source">' + esc(f) + "</a>") for f in fl)
+        others = " · ".join(('<b>' + esc(f) + "</b>" if f == rel else '<a href="/jobs/' + esc(name) + "?file=" + esc(q(f)) + '#source">' + esc(f) + "</a>") for f in fl)
         body += '<h2>Source</h2><div class="card">' + (('<p class="dim small" style="margin-top:0">' + others + "</p>") if len(fl) > 1 else "") + render_source(rel) + "</div>"
     return CSS + body, JS
 

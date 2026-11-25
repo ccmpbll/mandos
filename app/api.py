@@ -56,6 +56,14 @@ def _authorised():
     return True
 
 
+def _limit(default, most):
+    """?limit= as an int in 1..most, or None when it is not a number."""
+    v = request.args.get("limit", "")
+    if not v:
+        return default
+    return max(1, min(int(v), most)) if v.lstrip("-").isdigit() else None
+
+
 def _err(msg, status):
     return jsonify(error=msg), status
 
@@ -84,6 +92,8 @@ def install(app):
 
     @app.put("/api/v1/files/<path:rel>")
     def api_file_put(rel):
+        if not config.ALLOW_EDIT:
+            return _err("editing is off (MANDOS_ALLOW_EDIT=0, or the login is off)", 403)
         err = codeedit.save(rel, request.get_data(as_text=True))
         if err:
             return _err(err, 400)
@@ -92,6 +102,8 @@ def install(app):
 
     @app.delete("/api/v1/files/<path:rel>")
     def api_file_delete(rel):
+        if not config.ALLOW_EDIT:
+            return _err("editing is off (MANDOS_ALLOW_EDIT=0, or the login is off)", 403)
         err = codeedit.delete(rel)
         if err:
             return _err(err, 404 if err == "no such file" else 400)
@@ -111,6 +123,9 @@ def install(app):
         unknown = [k for k in body if k not in known]
         if unknown:
             return _err("unknown settings: " + ", ".join(unknown), 400)
+        locked = [k for k in body if settings.from_env(k)]
+        if locked:
+            return _err("set by an environment variable, so not changeable here: " + ", ".join(locked), 400)
         errs = settings.save({k: v for k, v in body.items() if v is not None}, [k for k, v in body.items() if v is None])
         if errs:
             return _err("; ".join(errs), 400)
@@ -129,7 +144,9 @@ def install(app):
     @app.get("/api/v1/runs")
     def api_runs():
         job = request.args.get("job")
-        limit = min(int(request.args.get("limit", 20) or 20), 200)
+        limit = _limit(20, 200)
+        if limit is None:
+            return _err("limit must be a number", 400)
         rows = db.rows("job_runs", "job=?" if job else "", (job,) if job else (), limit=limit)
         return jsonify([{k: v for k, v in r.items() if k != "log"} for r in rows])
 
@@ -151,5 +168,7 @@ def install(app):
     def api_table(name):
         if name not in pack_tables():
             return _err("no such table", 404)
-        limit = min(int(request.args.get("limit", 20) or 20), 500)
+        limit = _limit(20, 500)
+        if limit is None:
+            return _err("limit must be a number", 400)
         return jsonify(db.rows(name, limit=limit))

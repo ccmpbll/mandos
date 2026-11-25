@@ -71,3 +71,19 @@ def test_token_ui(c):
     assert b"mandos_" not in c.get("/settings/account").data
     c.post("/settings/tokens/delete", data={"id": tid})
     assert db.rows("api_tokens") == []
+
+
+def test_review_fixes(c, h, monkeypatch):
+    # writes refused while editing is off (login off implies it)
+    monkeypatch.setattr(config, "ALLOW_EDIT", False)
+    assert c.put("/api/v1/files/extra.py", data="X = 1\n", headers=h).status_code == 403
+    assert c.delete("/api/v1/files/targets.py", headers=h).status_code == 403
+    monkeypatch.setattr(config, "ALLOW_EDIT", True)
+    # a bad limit is a 400, not a 500
+    assert c.get("/api/v1/runs?limit=all", headers=h).status_code == 400
+    assert c.get("/api/v1/tables/targets_runs?limit=x", headers=h).status_code == 400
+    assert c.get("/api/v1/runs?limit=-5", headers=h).status_code == 200
+    # a setting locked by the environment is reported, not silently skipped
+    monkeypatch.setenv("PROM_URL", "https://env.example")
+    r = c.patch("/api/v1/settings", json={"PROM_URL": "https://other.example"}, headers=h)
+    assert r.status_code == 400 and "PROM_URL" in r.json["error"]
