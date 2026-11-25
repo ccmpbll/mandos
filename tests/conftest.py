@@ -9,7 +9,7 @@ PACK = tempfile.mkdtemp(prefix="mandos-pack-")
 shutil.copytree(os.path.join(ROOT, "examples", "starter"), PACK, dirs_exist_ok=True)
 os.environ["MANDOS_JOBS"] = PACK
 os.environ["MANDOS_DB"] = ":memory:"
-sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "app"))
 
 import pytest  # noqa: E402
 

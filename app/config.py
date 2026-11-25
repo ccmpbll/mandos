@@ -15,7 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TZ = ZoneInfo(env("TZ", "UTC") or "UTC")       # schedules and the dates jobs write use this zone
 
 # Environment only
-DB_PATH = env("MANDOS_DB", os.path.join(HERE, "data", "mandos.db"))
+DB_PATH = env("MANDOS_DB", os.path.join(os.path.dirname(HERE), "data", "mandos.db"))   # the checkout's data/ when run locally
 JOBS_DIR = env("MANDOS_JOBS", os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "jobs"))   # the job pack (pack.py and its files)
 DISABLE_AUTH = env("MANDOS_DISABLE_AUTH", "0") == "1"       # no login screen (then put mandos behind your own gate)
 ALLOW_EDIT = env("MANDOS_ALLOW_EDIT", "0" if DISABLE_AUTH else "1") == "1"   # the Jobs page editor

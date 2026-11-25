@@ -30,7 +30,7 @@ llama-swap or Ollama), Pushover, and the services your jobs read. `MANDOS_STARTE
 
 A pack is a folder with a `pack.py` that lists its jobs (a `run(log)` function, default schedules, and the steps, prompts and
 queries the Jobs page shows), plus optional tables, extra settings and pages. Pack code imports Mandos' modules (`config`, `db`,
-`llm`, `sources`, `notify`, `promptstore`, `web`). Start from `examples/starter`; the top of `packs.py` describes every field.
+`llm`, `sources`, `notify`, `promptstore`, `web`). Start from `examples/starter`; the top of `app/packs.py` describes every field.
 
 If an edited file doesn't import, Mandos keeps running the last pack that loaded and shows the error on the Jobs page.
 

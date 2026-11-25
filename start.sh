@@ -8,4 +8,4 @@ if [ "${MANDOS_STARTER:-0}" = "1" ] && [ ! -f "$JOBS/pack.py" ] && [ -z "$(ls -A
   cp -R /opt/mandos/examples/starter/. "$JOBS/"
   echo "copied the starter pack into $JOBS"
 fi
-exec python /opt/mandos/main.py "$@"
+exec python /opt/mandos/app/main.py "$@"

@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends tzdata && rm -r
 WORKDIR /opt/mandos
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY *.py start.sh ./
-COPY static ./static
+COPY app ./app
+COPY start.sh ./
 COPY examples ./examples
 COPY tools ./tools
 RUN mkdir -p /data && chown -R 99:100 /data
