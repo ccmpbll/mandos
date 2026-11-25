@@ -74,7 +74,7 @@ def page(title, active, body, js=""):
            + (' <span class="navcount">' + str(total) + "</span>" if total else "") + "</label><nav>" + "".join(link(*i) for i in items)
            + '</nav><span class="spacer"></span>' + user_menu(active) + "</header>")
     return ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-            '<meta name="robots" content="noindex"><title>' + esc(title) + '</title><link rel="icon" href="/static/logo.png?v=3"><link rel="stylesheet" href="/static/style.css"></head><body>'
+            '<meta name="robots" content="noindex"><title>' + esc(title) + '</title><link rel="icon" href="/static/favicon.png?v=4"><link rel="stylesheet" href="/static/style.css"></head><body>'
             + nav + '<main class="container">' + body + '</main><script src="/static/menu.js"></script>' + ("<script>" + js + "</script>" if js else "") + "</body></html>")
 
 
@@ -154,6 +154,11 @@ def edit_restore():
         return html_page("Edit " + rel + " - Mandos", "jobs", jobs_page.render_edit(codeedit.safe(rel), error=err), jobs_page.EDIT_JS, 400)
     packs.load()
     return redirect("/edit?file=" + jobs_page.q(codeedit.safe(rel)) + "&saved=1", 303)
+
+
+@app.get("/favicon.ico")
+def favicon():
+    return app.send_static_file("favicon.png")
 
 
 @app.get("/healthz")

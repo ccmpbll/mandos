@@ -103,3 +103,11 @@ def test_bad_proxy_hops_falls_back(monkeypatch):
     a = flask.Flask("t")
     auth.install(a)                                  # no crash
     assert type(a.wsgi_app).__name__ == "ProxyFix"
+
+
+def test_favicon_is_open_and_opaque(c):
+    setup_user(c)
+    c.post("/logout")
+    r = c.get("/favicon.ico")
+    assert r.status_code == 200 and r.mimetype == "image/png"
+    assert b'href="/static/favicon.png?v=4"' in c.get("/login").data

@@ -13,7 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import config
 import db
 
-OPEN = ("/login", "/setup", "/healthz", "/static/", "/api/")
+OPEN = ("/login", "/setup", "/healthz", "/static/", "/api/", "/favicon.ico")
 MIN_PW = 10
 TRIES, WINDOW = 10, 15 * 60          # failed logins per address and username, per 15 minutes
 _fails = {}
@@ -86,7 +86,7 @@ def check_password(pw, pw2):
 
 def card(title, inner, status=200):
     html = ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">'
-            '<title>' + esc(title) + ' - Mandos</title><link rel="icon" href="/static/logo.png?v=3"><link rel="stylesheet" href="/static/style.css"></head><body>'
+            '<title>' + esc(title) + ' - Mandos</title><link rel="icon" href="/static/favicon.png?v=4"><link rel="stylesheet" href="/static/style.css"></head><body>'
             '<main class="container"><div class="auth-card"><img class="logo" src="/static/logo-large.png?v=3" alt="Mandos">' + inner + "</div></main></body></html>")
     return Response(html, status=status, mimetype="text/html")
 
