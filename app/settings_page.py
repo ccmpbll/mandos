@@ -63,7 +63,7 @@ def tab_model():
         note = "Could not read /v1/models (" + esc(str((ms or {}).get("error", "no models") if isinstance(ms, dict) else "no models")) + "); type the names."
         chat, emb = field("LLM_MODEL", "Chat model"), field("EMBED_MODEL", "Embedding model", note)
     return section("Local model (llama-swap)", ["LLM_URL", "LLM_MODEL", "EMBED_MODEL", "LLM_KEY"],
-                   field("LLM_URL", "Base URL", "OpenAI-compatible endpoint (/v1). llama-swap; Ollama's /v1 should also work (untested).")
+                   field("LLM_URL", "Base URL", "The server's address, with or without /v1 (OpenAI-compatible: llama-swap, or Ollama's /v1).")
                    + chat + emb + field("LLM_KEY", "API key (optional)", "Only if something in front of llama-swap asks for one."), "Save model settings", "llm")
 
 

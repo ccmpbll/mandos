@@ -101,3 +101,9 @@ def test_users(c, monkeypatch):
     assert b"Deleted" in c.post("/settings/users/delete", data={"id": sam["id"]}).data and not auth.user_by_name("sam")
     r = c.post("/settings/password", data={"current": pw, "password": "a brand new one", "password2": "a brand new one"})
     assert b"Password changed" in r.data
+
+
+def test_llm_url_with_or_without_v1(c):
+    for url in ["https://llama.example/v1", "https://llama.example/v1/", "https://llama.example"]:
+        c.post("/settings/model", data={"keys": ["LLM_URL"], "LLM_URL": url})
+        assert config.LLM_URL == "https://llama.example", url

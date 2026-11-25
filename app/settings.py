@@ -88,7 +88,11 @@ def apply():
     for a, k, _, _ in fields():
         if a:
             v = value(k, s)[0]
-            setattr(config, a, v.rstrip("/") if k in ("MANDOS_BASE_URL", "LLM_URL") else v)
+            if k in ("MANDOS_BASE_URL", "LLM_URL"):
+                v = v.rstrip("/")
+            if k == "LLM_URL" and v.endswith("/v1"):
+                v = v[:-3]                  # the clients add /v1/...; accept the URL either way
+            setattr(config, a, v)
 
 
 def check(k, v):
