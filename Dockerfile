@@ -14,5 +14,4 @@ RUN mkdir -p /data && chown -R 99:100 /data
 USER 99:100
 VOLUME /data
 EXPOSE 8080
-HEALTHCHECK --interval=60s --timeout=5s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=4)"
 ENTRYPOINT ["/opt/mandos/start.sh"]
