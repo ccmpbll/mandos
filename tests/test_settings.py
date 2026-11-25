@@ -29,7 +29,7 @@ def test_pack_setting_on_services(c):
 
 
 def test_pages_render(c):
-    c.post("/settings/model", data={"keys": ["LLM_MODEL"], "LLM_MODEL": "qwen3.5-9b"})
+    c.post("/settings/model", data={"keys": ["LLM_URL", "LLM_MODEL"], "LLM_URL": "https://llama.example", "LLM_MODEL": "qwen3.5-9b"})
     for t, _ in settings_page.TABS:
         r = c.get("/settings/" + t)
         assert r.status_code == 200 and b"Settings" in r.data, t
@@ -107,3 +107,17 @@ def test_llm_url_with_or_without_v1(c):
     for url in ["https://llama.example/v1", "https://llama.example/v1/", "https://llama.example"]:
         c.post("/settings/model", data={"keys": ["LLM_URL"], "LLM_URL": url})
         assert config.LLM_URL == "https://llama.example", url
+
+
+def test_load_models_from_typed_url(c, monkeypatch):
+    seen = []
+    monkeypatch.setattr(llm, "models", lambda url=None: seen.append(url) or (["a", "b"] if url == "https://llama.example/v1" else {"error": "HTTP 404"}))
+    assert c.post("/settings/models", data={"url": "https://llama.example/v1"}).json == {"ok": True, "models": ["a", "b"]}
+    assert c.post("/settings/models", data={"url": "https://x"}).json == {"ok": False, "error": "HTTP 404"}
+    assert seen == ["https://llama.example/v1", "https://x"]
+    page = c.get("/settings/model").data
+    assert b'id="load-models"' in page and b"data-model" in page
+
+
+def test_llm_base_url():
+    assert llm.base_url(" https://l.example/v1/ ") == "https://l.example" and llm.base_url("https://l.example") == "https://l.example"

@@ -55,16 +55,21 @@ def test_button(what):
 
 
 def tab_model():
-    ms = llm.models()
+    ms = llm.models() if config.LLM_URL else {"error": "no address saved yet"}
     if isinstance(ms, list) and ms:
-        note = "Both lists come from the server's /v1/models (" + str(len(ms)) + " models). Save the URL first if you changed it."
-        chat, emb = field("LLM_MODEL", "Chat model", options=ms), field("EMBED_MODEL", "Embedding model", note, options=ms)
+        note, cls = str(len(ms)) + " models found.", "ok"
+        chat, emb = field("LLM_MODEL", "Chat model", options=ms), field("EMBED_MODEL", "Embedding model", options=ms)
     else:
-        note = "Could not read /v1/models (" + esc(str((ms or {}).get("error", "no models") if isinstance(ms, dict) else "no models")) + "); type the names."
-        chat, emb = field("LLM_MODEL", "Chat model"), field("EMBED_MODEL", "Embedding model", note)
+        note, cls = "No model list yet (" + str(ms.get("error", "no models") if isinstance(ms, dict) else "no models") + "). Enter the address and press Load models.", "muted"
+        chat, emb = field("LLM_MODEL", "Chat model"), field("EMBED_MODEL", "Embedding model")
+    mark = lambda h, k: h.replace(' name="' + k + '"', ' data-model name="' + k + '"', 1)  # noqa: E731
+    load = ('<p class="testrow"><button type="button" class="secondary" id="load-models">Load models</button> '
+            '<span id="models-note" class="' + cls + '">' + esc(note) + "</span></p>")
     return section("Local model (llama-swap)", ["LLM_URL", "LLM_MODEL", "EMBED_MODEL", "LLM_KEY"],
-                   field("LLM_URL", "Base URL", "The server's address, with or without /v1 (OpenAI-compatible: llama-swap, or Ollama's /v1).")
-                   + chat + emb + field("LLM_KEY", "API key (optional)", "Only if something in front of llama-swap asks for one."), "Save model settings", "llm")
+                   field("LLM_URL", "Base URL", "The server's address, with or without /v1 (OpenAI-compatible: llama-swap, or Ollama's /v1). "
+                         "Leaving the box loads its models below; Save keeps them.")
+                   + load + mark(chat, "LLM_MODEL") + mark(emb, "EMBED_MODEL")
+                   + field("LLM_KEY", "API key (optional)", "Only if something in front of llama-swap asks for one."), "Save model settings", "llm")
 
 
 def tab_notify():
@@ -152,7 +157,20 @@ CSS = ("<style>.split{display:grid;grid-template-columns:200px minmax(0,1fr);gap
 JS = ("document.addEventListener('click',function(e){var b=e.target.closest('button[data-test]');if(!b)return;var out=b.nextElementSibling;out.textContent='Working…';b.disabled=true;"
       "fetch('/settings/test/'+b.dataset.test,{method:'POST'}).then(function(r){return r.json()}).then(function(j){out.textContent=j.text;out.className=j.ok?'ok':'error'})"
       ".catch(function(x){out.textContent=String(x);out.className='error'}).finally(function(){b.disabled=false})});"
-      "document.addEventListener('submit',function(e){var m=e.target.getAttribute('data-confirm');if(m&&!confirm(m))e.preventDefault()});")
+      "document.addEventListener('submit',function(e){var m=e.target.getAttribute('data-confirm');if(m&&!confirm(m))e.preventDefault()});"
+      # Model lists from the address in the box (not saved yet): fill both model fields as dropdowns, keeping what was picked.
+      "(function(){var u=document.querySelector('input[name=LLM_URL],input[placeholder=\"from LLM_URL\"]'),b=document.getElementById('load-models'),"
+      "n=document.getElementById('models-note');if(!u||!b)return;function load(){n.textContent='Loading…';n.className='muted';b.disabled=true;"
+      "var f=new FormData();f.append('url',u.value);fetch('/settings/models',{method:'POST',body:f}).then(function(r){return r.json()}).then(function(j){"
+      "if(!j.ok){n.textContent=j.error;n.className='error';return}"
+      "document.querySelectorAll('[data-model]').forEach(function(el){if(el.disabled)return;var cur=el.value,s=document.createElement('select');"
+      "if(!cur){var emb=el.name==='EMBED_MODEL';cur=j.models.filter(function(m){return /embed/i.test(m)===emb})[0]||''}"
+      "s.name=el.name;s.setAttribute('data-model','');var list=j.models.slice();if(cur&&list.indexOf(cur)<0)list.unshift(cur);"
+      "list.forEach(function(m){var o=document.createElement('option');o.value=o.textContent=m;if(m===cur)o.selected=true;s.appendChild(o)});"
+      "el.replaceWith(s)});n.textContent=j.models.length+' models found. Pick them, then Save model settings.';n.className='ok'})"
+      ".catch(function(x){n.textContent=String(x);n.className='error'}).finally(function(){b.disabled=false})}"
+      "b.addEventListener('click',load);u.addEventListener('change',load);"
+      "u.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();load()}})})();")
 
 
 def render(tab, flash="", new_token=None):
@@ -224,6 +242,11 @@ def install(app, page):
             return show(tab, '<p class="error">Not saved: ' + esc("; ".join(errs)) + "</p>", 400)
         runner.reschedule()
         return redirect(f"/settings/{tab}?saved=1", 303)
+
+    @app.post("/settings/models")
+    def settings_models():
+        m = llm.models(request.form.get("url", ""))
+        return jsonify(ok=True, models=m) if isinstance(m, list) else jsonify(ok=False, error=m.get("error", "no models"))
 
     @app.post("/settings/test/<what>")
     def settings_test(what):
