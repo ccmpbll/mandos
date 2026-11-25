@@ -75,8 +75,7 @@ def tab_model():
 def tab_notify():
     return (section("Pushover", ["PUSHOVER_TOKEN", "PUSHOVER_USER", "MANDOS_BASE_URL"],
                     field("PUSHOVER_TOKEN", "App token") + field("PUSHOVER_USER", "User key") + field("MANDOS_BASE_URL", "Public URL of mandos", "Used for the link in alerts."),
-                    "Save notification settings", "pushover")
-            + section("Uptime Kuma heartbeat", ["KUMA_PUSH_URL"], field("KUMA_PUSH_URL", "Push URL", "Contains its own token. Only sent in live mode, after each sweep."), "Save"))
+                    "Save notification settings", "pushover"))
 
 
 def tab_services():
@@ -93,6 +92,9 @@ def tab_services():
             + '<h2>Direct sources</h2>'
             + section("Pi-hole", ["PIHOLE_URL"], field("PIHOLE_URL", "Pi-hole URL"), "Save Pi-hole", "pihole")
             + section("Home Assistant", ["HA_URL", "HA_TOKEN"], field("HA_URL", "Home Assistant URL") + field("HA_TOKEN", "Long-lived token"), "Save Home Assistant", "ha")
+            + section("Uptime Kuma heartbeat", ["KUMA_PUSH_URL"], field("KUMA_PUSH_URL", "Push URL",
+                      "A Kuma push monitor's URL (it contains its own token). Jobs call it when a run finishes, so Kuma alerts when runs stop. "
+                      "Only called in live mode."), "Save")
             + pack_section)
 
 
