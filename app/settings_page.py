@@ -157,7 +157,7 @@ CSS = ("<style>.split{display:grid;grid-template-columns:200px minmax(0,1fr);gap
        ".sidenav a{flex:1 1 auto;text-align:center;padding:9px 12px;border:1px solid var(--border);border-radius:8px;white-space:nowrap}.sidenav a.active{border-color:var(--accent)}}</style>")
 
 JS = ("document.addEventListener('click',function(e){var b=e.target.closest('button[data-test]');if(!b)return;var out=b.nextElementSibling;out.textContent='Working…';b.disabled=true;"
-      "fetch('/settings/test/'+b.dataset.test,{method:'POST'}).then(function(r){return r.json()}).then(function(j){out.textContent=j.text;out.className=j.ok?'ok':'error'})"
+      "var fm=b.closest('form');fetch('/settings/test/'+b.dataset.test,{method:'POST',body:fm?new FormData(fm):null}).then(function(r){return r.json()}).then(function(j){out.textContent=j.text;out.className=j.ok?'ok':'error'})"
       ".catch(function(x){out.textContent=String(x);out.className='error'}).finally(function(){b.disabled=false})});"
       "document.addEventListener('submit',function(e){var m=e.target.getAttribute('data-confirm');if(m&&!confirm(m))e.preventDefault()});"
       # Model lists from the address in the box (not saved yet): fill both model fields as dropdowns, keeping what was picked.
@@ -185,25 +185,56 @@ def render(tab, flash="", new_token=None):
             + side + '</nav><div class="split-body">' + body + "</div></div>")
 
 
-def run_test(what):
-    """(ok, text) for a Test button."""
+def form_values(form):
+    """What a Test button checks: the section's boxes as they are now, not saved. An empty secret box means the saved secret
+    (as on Save); a field locked by the environment uses that value."""
+    known = settings.by_key()
+
+    def v(k):
+        if k in form and not settings.from_env(k):
+            typed = (form.get(k) or "").strip()
+            if typed or not known.get(k, (None, False))[1]:
+                return typed
+        return settings.value(k)[0] or ""
+    return v
+
+
+def _url(v, k):
+    u = v(k).rstrip("/")
+    if not u.startswith(("http://", "https://")):
+        raise ValueError("enter an address starting with http:// or https://")
+    return u
+
+
+def _bearer(t):
+    return {"Authorization": "Bearer " + t} if t else {}
+
+
+def run_test(what, v=None):
+    """(ok, text) for a Test button; v(key) gives the value to try (default: the saved settings)."""
+    v = v or (lambda k: settings.value(k)[0] or "")
     if what == "llm":
-        m = llm.models()
+        m = llm.models(v("LLM_URL"), v("LLM_KEY") or None)
         return (True, f"OK: {len(m)} models ({', '.join(m[:6])}{'…' if len(m) > 6 else ''})") if isinstance(m, list) else (False, m["error"])
     if what == "pushover":
-        r = notify.push("Mandos test", "Test notification from the Settings page.")
-        return (r.get("status") == 1, "Sent." if r.get("status") == 1 else "Not sent: " + str(r)[:200])
+        r = notify.push("Mandos test", "Test notification from the Settings page.", token=v("PUSHOVER_TOKEN"), user=v("PUSHOVER_USER"))
+        return (r.get("status") == 1, "Sent." if r.get("status") == 1 else "Not sent: " + str(r.get("skipped") or r.get("errors") or r)[:200])
     if what.startswith("run:"):
         name = what[4:]
         if name in runner.running():
             return False, "already running"
         return (True, "Started; see Runs.") if runner.start(name) else (False, "no such job")
-    r = {"prom": lambda: sources.prom("up"), "loglook": lambda: sources.loglook("top", {"hours": 1, "top": 1}, timeout=15),
-         "ulmo": lambda: sources.ulmo_get("/api/v1/catalog"), "pihole": lambda: sources.pihole("stats/summary"),
-         "ha": lambda: sources.ha("GET", "/api/", timeout=10)}.get(what)
-    if not r:
+    calls = {"prom": lambda: sources.get_json(_url(v, "PROM_URL") + "/api/v1/query", {"query": "up"}, timeout=15),
+             "loglook": lambda: sources.get_json(_url(v, "LOGLOOK_URL") + "/v1/sources", headers=_bearer(v("LOGLOOK_TOKEN")), timeout=15),
+             "ulmo": lambda: sources.get_json(_url(v, "ULMO_URL") + "/api/v1/catalog", headers=_bearer(v("ULMO_TOKEN")), timeout=10),
+             "pihole": lambda: sources.get_json(_url(v, "PIHOLE_URL") + "/api/stats/summary", timeout=10),
+             "ha": lambda: sources.full("GET", _url(v, "HA_URL") + "/api/", headers=_bearer(v("HA_TOKEN")), timeout=10, text=True)}
+    if what not in calls:
         return False, "unknown test"
-    out = r()
+    try:
+        out = calls[what]()
+    except ValueError as e:
+        return False, str(e)
     if isinstance(out, dict) and out.get("error"):
         return False, str(out["error"])[:200]
     if isinstance(out, dict) and "statusCode" in out and out["statusCode"] >= 400:
@@ -212,6 +243,8 @@ def run_test(what):
         return True, f"OK: {len((out.get('data') or {}).get('result') or [])} targets answer 'up'"
     if what == "ulmo":
         return True, f"OK: {len((out or {}).get('commands') or [])} commands in the catalog"
+    if what == "loglook":
+        return True, f"OK: {len((out or {}).get('sources') or [])} sources"
     return True, "OK"
 
 
@@ -253,7 +286,7 @@ def install(app, page):
     @app.post("/settings/test/<what>")
     def settings_test(what):
         try:
-            ok, text = run_test(what)
+            ok, text = run_test(what, form_values(request.form))
         except Exception as e:  # noqa: BLE001
             ok, text = False, str(e)[:200]
         return jsonify(ok=ok, text=text)

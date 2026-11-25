@@ -13,7 +13,7 @@ def c(monkeypatch):
     for _, e, _, _ in settings.fields():
         monkeypatch.delenv(e, raising=False)
         monkeypatch.delenv(e + "_FILE", raising=False)
-    monkeypatch.setattr(llm, "models", lambda: ["nomic-embed-text", "qwen3.5-9b", "other-model"])
+    monkeypatch.setattr(llm, "models", lambda url=None, key=None: ["nomic-embed-text", "qwen3.5-9b", "other-model"])
     saved = {a: getattr(config, a) for a, _, _, _ in settings.fields() + [("SHADOW", "", False, "")] if a}
     settings.apply()
     yield web.app.test_client()
@@ -80,13 +80,22 @@ def test_mode_drives_cron_defaults(c, monkeypatch):
     assert settings.cron("targets") == ""
 
 
-def test_test_buttons(c, monkeypatch):
+def test_test_buttons_use_the_boxes_not_the_saved_values(c, monkeypatch):
     import sources
-    monkeypatch.setattr(sources, "prom", lambda q: {"error": "boom"})
-    assert c.post("/settings/test/prom").json == {"ok": False, "text": "boom"}
-    assert c.post("/settings/test/llm").json["ok"]
+    calls = []
+    monkeypatch.setattr(sources, "get_json", lambda url, params=None, headers=None, timeout=30: calls.append((url, headers)) or {"commands": [1, 2]})
+    c.post("/settings/services", data={"keys": ["ULMO_URL", "ULMO_TOKEN"], "ULMO_URL": "https://saved.example", "ULMO_TOKEN": "saved-token"})
+    r = c.post("/settings/test/ulmo", data={"ULMO_URL": "https://typed.example/", "ULMO_TOKEN": ""})
+    assert r.json == {"ok": True, "text": "OK: 2 commands in the catalog"}
+    assert calls[-1] == ("https://typed.example/api/v1/catalog", {"Authorization": "Bearer saved-token"})    # typed URL, saved secret
+    assert config.ULMO_URL == "https://saved.example"                                                        # nothing saved
+    assert c.post("/settings/test/prom", data={"PROM_URL": "prom.example"}).json["ok"] is False
+    assert "http" in c.post("/settings/test/prom", data={"PROM_URL": ""}).json["text"]
+    assert c.post("/settings/test/llm", data={"LLM_URL": "https://llama.example"}).json["ok"]
     assert not c.post("/settings/test/nope").json["ok"]
-
+    import notify
+    r = c.post("/settings/test/pushover", data={"PUSHOVER_TOKEN": "", "PUSHOVER_USER": "typed-user"})
+    assert r.json["ok"] is False and "no Pushover app token" in r.json["text"]
 
 def test_users(c, monkeypatch):
     monkeypatch.setattr(config, "DISABLE_AUTH", False)
@@ -111,7 +120,7 @@ def test_llm_url_with_or_without_v1(c):
 
 def test_load_models_from_typed_url(c, monkeypatch):
     seen = []
-    monkeypatch.setattr(llm, "models", lambda url=None: seen.append(url) or (["a", "b"] if url == "https://llama.example/v1" else {"error": "HTTP 404"}))
+    monkeypatch.setattr(llm, "models", lambda url=None, key=None: seen.append(url) or (["a", "b"] if url == "https://llama.example/v1" else {"error": "HTTP 404"}))
     assert c.post("/settings/models", data={"url": "https://llama.example/v1"}).json == {"ok": True, "models": ["a", "b"]}
     assert c.post("/settings/models", data={"url": "https://x"}).json == {"ok": False, "error": "HTTP 404"}
     assert seen == ["https://llama.example/v1", "https://x"]

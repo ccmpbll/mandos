@@ -16,13 +16,14 @@ def base_url(v):
     return v[:-3] if v.endswith("/v1") else v
 
 
-def models(url=None):
-    """Model ids from <url or the saved LLM_URL>/v1/models, or {'error': ...}."""
+def models(url=None, key=None):
+    """Model ids from <url or the saved LLM_URL>/v1/models, or {'error': ...}. key: an API key to try instead of the saved one."""
     base = base_url(url) if url is not None else config.LLM_URL
+    hdr = {"Authorization": "Bearer " + key} if key else headers()
     if not base.startswith(("http://", "https://")):
         return {"error": "the address must start with http:// or https://"}
     try:
-        r = sources.client().get(base + "/v1/models", headers=headers(), timeout=6)
+        r = sources.client().get(base + "/v1/models", headers=hdr, timeout=6)
         if r.status_code >= 400:
             return {"error": f"HTTP {r.status_code}"}
         return sorted(m["id"] for m in r.json().get("data", []) if m.get("id"))
