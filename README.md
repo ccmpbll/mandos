@@ -2,7 +2,7 @@
 
 # Mandos
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/ccmpbll/mandos/docker.yml) ![Tests](https://img.shields.io/github/actions/workflow/status/ccmpbll/mandos/tests.yml) ![Docker Image Size](https://img.shields.io/docker/image-size/ccmpbll/mandos/latest) ![Docker Pulls](https://img.shields.io/docker/pulls/ccmpbll/mandos.svg) ![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Build Status](https://img.shields.io/github/actions/workflow/status/ccmpbll/mandos/docker.yml?label=build) ![Tests](https://img.shields.io/github/actions/workflow/status/ccmpbll/mandos/tests.yml?label=tests) ![Docker Image Size](https://img.shields.io/docker/image-size/ccmpbll/mandos/latest) ![Docker Pulls](https://img.shields.io/docker/pulls/ccmpbll/mandos.svg?cacheSeconds=3600) ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 > **An experiment for my own homelab.** I built Mandos for my own setup and it may not be useful for anyone else. It is very
 > experimental: expect breaking changes to the job pack format, the API, settings and the database between any two releases,
