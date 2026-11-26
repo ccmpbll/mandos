@@ -10,7 +10,7 @@
 .usermenu .menu a:hover,.usermenu .menu button:hover{background:rgba(255,255,255,.06);text-decoration:none;opacity:1}.usermenu .menu a[aria-current="page"]{color:var(--accent)}
 .usermenu .menu form{margin:0}.usermenu .menu .sep{height:1px;background:var(--border);margin:6px 0}.usermenu .menu .ver{padding:6px 10px;font-size:.75rem;color:var(--muted)}
 .auth-card{max-width:520px;margin:60px auto;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:32px}.auth-card h1{font-size:1.3rem;margin-top:0}
-.auth-card .logo{display:block;max-width:100%;max-height:160px;border-radius:50%;margin:0 auto 16px}
+.auth-card .logo{display:block;width:auto;height:auto;max-width:100%;max-height:480px;border-radius:50%;margin:0 auto 16px}
 form.std label{display:block;margin-bottom:14px;font-size:.85rem;color:var(--muted)}
 form.std input{display:block;width:100%;margin-top:6px;padding:8px 10px;background:#11141a;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.95rem}
 form.std input:focus{outline:none;border-color:var(--accent)}form.std{max-width:520px}
