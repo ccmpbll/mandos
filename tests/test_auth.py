@@ -110,4 +110,4 @@ def test_favicon_is_open_and_opaque(c):
     c.post("/logout")
     r = c.get("/favicon.ico")
     assert r.status_code == 200 and r.mimetype == "image/png"
-    assert b'href="/static/favicon.png?v=4"' in c.get("/login").data
+    assert b'href="/static/favicon.png?v=5"' in c.get("/login").data

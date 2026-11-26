@@ -69,12 +69,12 @@ def page(title, active, body, js=""):
     def link(label, href, key, n):
         return ('<a href="' + esc(href) + '"' + (' class="active" aria-current="page"' if active == key else "") + (" data-attn" if n else "") + ">" + esc(label)
                 + (' <span class="navcount">' + str(n) + "</span>" if n else "") + "</a>")
-    nav = ('<header class="topbar"><a class="brand" href="' + esc(home()) + '"><img class="mark" src="/static/logo.png?v=3" alt="">Mandos</a>'
+    nav = ('<header class="topbar"><a class="brand" href="' + esc(home()) + '"><img class="mark" src="/static/logo.png?v=4" alt="">Mandos</a>'
            '<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Show the menu"><label for="nav-toggle" class="menu-btn">Menu'
            + (' <span class="navcount">' + str(total) + "</span>" if total else "") + "</label><nav>" + "".join(link(*i) for i in items)
            + '</nav><span class="spacer"></span>' + user_menu(active) + "</header>")
     return ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-            '<meta name="robots" content="noindex"><title>' + esc(title) + '</title><link rel="icon" href="/static/favicon.png?v=4"><link rel="stylesheet" href="/static/style.css"></head><body>'
+            '<meta name="robots" content="noindex"><title>' + esc(title) + '</title><link rel="icon" href="/static/favicon.png?v=5"><link rel="stylesheet" href="/static/style.css"></head><body>'
             + nav + '<main class="container">' + body + '</main><script src="/static/menu.js"></script>' + ("<script>" + js + "</script>" if js else "") + "</body></html>")
 
 
@@ -91,14 +91,26 @@ def root():
 @app.get(RUNS)
 def runs():
     rows = db.rows("job_runs", limit=60)
-    tr = "".join('<tr><td><a href="/jobs/' + esc(r["job"]) + '">' + esc(r["job"]) + '</a></td><td><span class="badge '
-                 + ("ok" if r["status"] == "success" else "crit" if r["status"] == "failed" else "warn") + '">'
-                 + esc(r["status"]) + "</span></td><td>" + esc(r["started"]) + "</td><td>" + esc(r.get("finished") or "") + "</td><td>" + esc(r.get("detail") or "")
-                 + ("<details><summary>log</summary><pre>" + esc(r["log"]) + "</pre></details>" if r.get("log") else "") + "</td></tr>" for r in rows)
-    body = ('<div class="page-header"><div><h1>Runs</h1><p class="sub">The last 60 job runs (mode: ' + esc(config.MODE) + ").</p></div></div>"
-            + ("<table><tr><td><strong>Job</strong></td><td><strong>Status</strong></td><td><strong>Started</strong></td><td><strong>Finished</strong></td>"
-               "<td><strong>Detail</strong></td></tr>" + tr + "</table>" if tr else '<p class="dim">No runs yet.</p>'))
+    titles = {n: j.get("title", n) for n, j in packs.jobs().items()}
+    out = "".join(
+        '<div class="playbook-row"><div class="playbook-row-header"><a class="playbook-name" href="/jobs/' + esc(r["job"]) + '">' + esc(titles.get(r["job"], r["job"]))
+        + '</a><span class="badge ' + ("ok" if r["status"] == "success" else "crit" if r["status"] == "failed" else "warn") + '">' + esc(r["status"]) + "</span></div>"
+        + '<div class="playbook-facts"><span class="fact">' + esc(r["started"] or "") + "</span>" + ('<span class="fact">' + esc(_took(r)) + "</span>" if _took(r) else "") + "</div>"
+        + ('<p class="dim small" style="margin:4px 0 0">' + esc(r["detail"]) + "</p>" if r.get("detail") else "")
+        + ("<details style=\"margin:6px 0 0;font-size:.85rem\"><summary>Log</summary><pre>" + esc(r["log"]) + "</pre></details>" if r.get("log") else "") + "</div>"
+        for r in rows)
+    body = (jobs_page.CSS + '<div class="page-header"><div><h1>Runs</h1><p class="sub">The last 60 job runs (mode: ' + esc(config.MODE) + ").</p></div></div>"
+            + ('<div class="card flush">' + out + "</div>" if out else '<p class="dim">No runs yet.</p>'))
     return html_page("Runs - Mandos", "runs", body)
+
+
+def _took(r):
+    try:
+        from datetime import datetime
+        s = int((datetime.fromisoformat(r["finished"]) - datetime.fromisoformat(r["started"])).total_seconds())
+    except (TypeError, ValueError):
+        return ""
+    return "took " + (f"{s // 60}m {s % 60}s" if s >= 60 else f"{s}s")
 
 
 # ================================================================ jobs and the pack editor
