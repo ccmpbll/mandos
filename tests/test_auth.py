@@ -110,4 +110,8 @@ def test_favicon_is_open_and_opaque(c):
     c.post("/logout")
     r = c.get("/favicon.ico")
     assert r.status_code == 200 and r.mimetype == "image/png"
-    assert b'href="/static/favicon.png?v=5"' in c.get("/login").data
+    page = c.get("/login").data
+    assert b'href="/static/favicon-6.png"' in page and b'href="/static/apple-touch-icon.png"' in page
+    for p in ("/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"):
+        r = c.get(p)
+        assert r.status_code == 200 and r.mimetype == "image/png"
